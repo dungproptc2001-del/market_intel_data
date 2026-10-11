@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/dungproptc2001-del/market_intel_data/main/meta/rates-daily.schema.json",
+  "title": "One line of feed/rates/mra-rates-YYYY-MM-DD.jsonl",
+  "description": "One value of one rate series on day snapshot_date. The file is a full snapshot: every series its source confirmed on that day has one valid line, also when the value did not change, plus the rejected readings of the day as a trace. A series that could not be read on that day has no line; an old value is never copied forward. Every number is read from the page of its publisher. MERGE on (snapshot_date, series_key, status). Every field is present on every line.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "snapshot_date", "confirmed_at", "changed", "prev_value", "prev_as_of",
+    "obs_id", "source_id", "series_key", "kind", "bank_code", "currency", "side", "term_months", "channel",
+    "value", "unit", "as_of", "as_of_inferred", "doc_no", "issued", "status", "reject_reason",
+    "source_url", "snapshot_ref", "first_seen"
+  ],
+  "properties": {
+    "schema_version": {"const": 1, "description": "Version of the file layout; 1 is the layout described here. It rises only when a field changes type or meaning or is dropped."},
+    "snapshot_date": {"type": "string", "format": "date", "description": "Day D of the snapshot in Vietnam time, the same date as in the file name."},
+    "confirmed_at": {"type": "string", "format": "date-time", "description": "Last time on snapshot_date the source page was read and showed this value."},
+    "changed": {"type": "boolean", "description": "true when (value, as_of) differs from the latest valid line of the series before snapshot_date, or when the series is new. false when nothing changed, and always false on a rejected line."},
+    "prev_value": {"type": ["number", "null"], "description": "Latest valid value of the series before snapshot_date; equals value when changed is false. null for a series seen for the first time."},
+    "prev_as_of": {"type": ["string", "null"], "format": "date", "description": "as_of of prev_value. null when prev_value is null."},
+
+    "obs_id": {"type": "string", "pattern": "^[0-9a-f]{12}$", "description": "Id of the observation: 12 hex characters of a hash of (series_key, as_of, value). One observation is one value of one series as published."},
+    "source_id": {"type": "string", "description": "Id of the page the value was read from: sbv_central_rate, vcb_fx, or deposit- followed by the bank code."},
+    "series_key": {"type": "string", "description": "Stable id of the time series, e.g. usd_vnd_central, vcb_fx/USD/transfer, deposit/VCB/12/online. The key to follow one series across days."},
+    "kind": {"enum": ["central_rate", "fx_quote", "deposit_rate"], "description": "What the series measures. central_rate = the central USD/VND rate announced by the State Bank of Vietnam; fx_quote = an exchange rate quoted by a bank; deposit_rate = a deposit interest rate posted by a bank."},
+    "bank_code": {"type": ["string", "null"], "description": "Short code of the bank, e.g. VCB, ACB. null for the State Bank of Vietnam."},
+    "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$", "description": "ISO 4217 code. For central_rate and fx_quote, the foreign currency priced in VND; for deposit_rate, the currency of the deposit."},
+    "side": {"enum": ["buy", "transfer", "sell", null], "description": "For fx_quote, which price of the bank. buy = the bank buys cash; transfer = the bank buys by transfer; sell = the bank sells. null for the other kinds."},
+    "term_months": {"type": ["number", "null"], "minimum": 0, "description": "For deposit_rate, the term in months; 0 is a demand deposit, 0.25 is one week. null for the other kinds."},
+    "channel": {"enum": ["counter", "online", null], "description": "For deposit_rate, where the deposit is made. counter = at a branch; online = in the app or on the website. null for the other kinds."},
+    "value": {"type": ["number", "null"], "description": "The number, expressed in unit. null only on a rejected line whose number could not be read."},
+    "unit": {"enum": ["VND", "pct_per_year"], "description": "Unit of value. VND = Vietnamese dong for one unit of currency; pct_per_year = percent per year."},
+    "as_of": {"type": "string", "format": "date", "description": "Date the value applies from, as the source states it."},
+    "as_of_inferred": {"type": "boolean", "description": "true when the source page states no date and as_of is the day the collector first read the value."},
+    "doc_no": {"type": ["string", "null"], "description": "Number of the official document behind the value, e.g. 414/TB-NHNN. null when there is none."},
+    "issued": {"type": ["string", "null"], "format": "date", "description": "Date the official document was issued. null when there is none."},
+    "status": {"enum": ["valid", "rejected"], "description": "Result of the checks on the reading. valid = passed the format and range checks; rejected = read from the page but failed a check, kept as a trace and not to be used as data."},
+    "reject_reason": {"type": ["string", "null"], "description": "Why a rejected line failed its check. null on a valid line."},
+    "source_url": {"type": "string", "format": "uri", "description": "URL of the page the value was read from."},
+    "snapshot_ref": {"type": "string", "description": "Path of the stored copy of the source page in the private archive. A reference for audit only; the copy is not in this repository."},
+    "first_seen": {"type": "string", "format": "date-time", "description": "When the collector first read this value for the series."}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "valid"}}},
+     "then": {"properties": {"value": {"type": "number"}, "reject_reason": {"const": null}}}},
+    {"if": {"properties": {"status": {"const": "rejected"}}},
+     "then": {"properties": {"reject_reason": {"type": "string", "minLength": 1}, "changed": {"const": false}}}}
+  ]
+}

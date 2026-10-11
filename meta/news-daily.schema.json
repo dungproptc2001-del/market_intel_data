@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/dungproptc2001-del/market_intel_data/main/meta/news-daily.schema.json",
+  "title": "One line of feed/news/mra-news-YYYY-MM-DD.jsonl",
+  "description": "One news article of day D. Every field is present on every line: an empty list is [], a missing value is null. MERGE on id; the line with the greatest (digest_date, updated_at) is the current one. The text fields are in Vietnamese. Fields from enrichment onward are produced by a language model, the fields before it by deterministic code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "digest_date", "id", "title", "description", "source_url", "source_name", "source_domain", "language",
+    "published_at", "published_date", "collected_at", "updated_at", "feeds", "tier", "content_status", "fetch_via",
+    "content_md", "prefilter", "llm_use", "cluster_id", "dedup_suspect",
+    "enrichment", "llm_run_id", "event_key", "representative", "category", "subcategory", "topic", "segment",
+    "relevance", "summary", "summary_source", "entities", "metrics", "figures", "direction", "event_date",
+    "analysis",
+    "sentiment_corporate", "impact_corporate", "sentiment_general", "impact_general", "scoring_version"
+  ],
+  "properties": {
+    "schema_version": {"const": 2, "description": "Version of the file layout; 2 is the layout described here. It rises only when a field changes type or meaning or is dropped. A new field does not change it."},
+    "digest_date": {"type": "string", "format": "date", "description": "Day D this line belongs to, the same date as in the file name. Day D is a window between two morning cuts (about 04:40 Asia/Ho_Chi_Minh), not a calendar day."},
+
+    "id": {"type": "string", "pattern": "^mi-[0-9a-f]{8}$", "description": "Stable article id: mi- followed by 8 hex characters of a hash of the normalized article URL. An article keeps its id on every day it appears. Key for MERGE."},
+    "title": {"type": "string", "minLength": 1, "description": "Headline as published, usually in Vietnamese."},
+    "description": {"type": ["string", "null"], "description": "Lead paragraph (sapo) from the feed, as published. null when the feed gave none."},
+    "source_url": {"type": "string", "format": "uri", "description": "URL of the article on the publisher site. For an item found through Google News whose publisher link could not be resolved, the Google News link."},
+    "source_name": {"type": "string", "description": "Name of the publisher, e.g. CafeF, VnExpress."},
+    "source_domain": {"type": ["string", "null"], "description": "Domain of the publisher. For a Google News item, the domain named in the feed entry. null when unknown."},
+    "language": {"enum": ["vi", "en"], "description": "Language of the article. vi = Vietnamese; en = English."},
+    "published_at": {"type": ["string", "null"], "format": "date-time", "description": "When the publisher says the article was published, with UTC offset. null when the feed gave no time."},
+    "published_date": {"type": ["string", "null"], "format": "date", "description": "Date of published_at in Vietnam time (UTC+7). null when published_at is null."},
+    "collected_at": {"type": "string", "format": "date-time", "description": "When the collector first saw the article."},
+    "updated_at": {"type": "string", "format": "date-time", "description": "Time of the stored version of the article used for this line. When one id appears in several files, the line with the greatest (digest_date, updated_at) is the current one."},
+    "feeds": {"type": "array", "items": {"type": "string"}, "description": "Ids of the feeds (RSS feeds or Google News queries) in which the article was seen. One article can come from several."},
+    "tier": {"enum": [1, 2, 3], "description": "Reliability tier of the source, fixed in configuration and not judged per article. 1 = the body that issues the figures (regulator, official publisher); 2 = established news outlet; 3 = any other source."},
+    "content_status": {"enum": ["ok", "failed", "no_text", "paywalled", "unresolved", "skipped_budget", "listed"], "description": "Outcome of fetching the full text. ok = the full text is in content_md; failed = the page could not be fetched; no_text = the page was fetched but holds no article body; paywalled = the publisher is behind a paywall and was not fetched; unresolved = a Google News link that did not lead to the publisher page; skipped_budget = not fetched because the monthly fetch budget was reached; listed = headline only, never fetched by design."},
+    "fetch_via": {"enum": ["http", "firecrawl", null], "description": "How the full text was fetched. http = a plain HTTP request; firecrawl = a rendering service, used where plain HTTP cannot get the page. null when nothing was fetched."},
+    "content_md": {"type": ["string", "null"], "description": "Full text of the article as Markdown, exactly as the collector stored it. null unless content_status is ok."},
+    "prefilter": {"enum": ["candidate", "unrelated"], "description": "Result of the keyword filter that runs before any model. candidate = passed the filter; unrelated = out of scope by the keyword rules, kept in the file with category news_unrelated and not processed further."},
+    "llm_use": {"type": "boolean", "description": "Whether the full text of this source may be given to the language model. When false the model saw only the title and the lead: summary is then the lead (summary_source sapo) and analysis is null."},
+    "cluster_id": {"type": "string", "description": "Copy cluster: the id of the earliest article among near-identical copies of one text (syndication). Equals id when the article has no copy."},
+    "dedup_suspect": {"type": "array", "items": {"type": "string"}, "description": "Ids of other articles the collector suspected of reporting the same event. A hint only; the decision is in event_key."},
+
+    "enrichment": {"enum": ["full", "triage_only", "raw"], "description": "How far the model layer processed this article. full = labelled and summarized; triage_only = labelled (category, topic, relevance) but not summarized; raw = not processed, every model field is empty."},
+    "llm_run_id": {"type": ["string", "null"], "pattern": "^llm-\\d{4}-\\d{2}-\\d{2}_\\d{4}$", "description": "Id of the model run that produced the model fields, in the form llm-YYYY-MM-DD_HHMM. null when enrichment is raw."},
+    "event_key": {"type": ["string", "null"], "pattern": "^ev-[0-9a-f]{10}$", "description": "Event id: ev- followed by 10 hex characters. Articles of one digest_date that report the same event (same actors, same action, same time) share one event_key. null when enrichment is raw."},
+    "representative": {"type": ["boolean", "null"], "description": "true for exactly one article of each event_key, the one that stands for the event; false for the other articles of that event. Only a representative is scored. null when enrichment is raw."},
+    "category": {"type": "array", "items": {"type": "string"}, "description": "Categories from meta/taxonomy.json (macro, micro, retail, other), the primary one first; or news_unrelated alone for an article out of scope. Empty when enrichment is raw."},
+    "subcategory": {"type": "array", "items": {"type": "string"}, "description": "Subcategories from meta/taxonomy.json, each under one of the categories of the article, the primary one first. Empty for news_unrelated and when enrichment is raw."},
+    "topic": {"type": ["string", "null"], "maxLength": 120, "description": "The event in a few plain Vietnamese words, at most 120 characters. null when the title says nothing usable or enrichment is raw."},
+    "segment": {"type": "array", "items": {"enum": ["RBG", "CIBG"]}, "description": "Business segments of the bank the article concerns. RBG = retail banking: individuals and the retail business; CIBG = corporate and institutional banking: corporate clients and the credit portfolio. Can hold both, or be empty."},
+    "relevance": {"type": ["integer", "null"], "minimum": 0, "maximum": 3, "description": "How much the bank needs this article, judged by the model from the title and the lead. 3 = changes operating conditions or a key market now; 2 = clearly bears on the business or a client sector, worth reading in full; 1 = background; 0 = unrelated. null when enrichment is raw."},
+    "summary": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Facts the article states, one sentence per element, in Vietnamese. Nothing here is inferred. Empty when the article was not summarized."},
+    "summary_source": {"enum": ["llm", "sapo", null], "description": "Where summary comes from. llm = written by the model from the full text; sapo = the lead paragraph of the publisher, used when llm_use is false. null when summary is empty."},
+    "entities": {
+      "description": "Organizations, people, places and instruments the article names. Empty when the article was not summarized.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "description": "The name as written in the article."},
+          "type": {"enum": ["bank", "company", "regulator", "person", "place", "index", "currency", "commodity", "other"], "description": "Kind of entity. bank = commercial bank; company = any other company; regulator = state body or regulator; person = an individual; place = country, province or city; index = market index; currency = currency or currency pair; commodity = commodity such as gold or oil; other = anything else."}
+        }
+      }
+    },
+    "metrics": {"type": "array", "items": {"type": "string"}, "description": "Names of the indicators the article reports, in snake_case, e.g. deposit_rate, lending_rate, policy_rate, credit_growth. A free vocabulary, not a fixed list."},
+    "figures": {
+      "description": "Numbers quoted from the text of the article. They are what the article says, NOT official data; official rates are in the rates file.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "entity", "value", "unit", "period", "as_of"],
+        "properties": {
+          "metric": {"type": "string", "description": "Name of the indicator, in snake_case, as in metrics."},
+          "entity": {"type": ["string", "null"], "description": "Who or what the number is about. null when it is about no one in particular."},
+          "value": {"type": "number", "description": "The number, expressed in unit."},
+          "unit": {"type": "string", "description": "Unit of value, e.g. pct, VND, bn_VND, USD."},
+          "period": {"type": ["string", "null"], "description": "Period the number covers, e.g. 2026-Q3. null when the article does not say."},
+          "as_of": {"type": ["string", "null"], "format": "date", "description": "Date the number refers to. null when the article does not say."}
+        }
+      }
+    },
+    "direction": {"enum": ["up", "down", "flat", "new", "n/a", null], "description": "The main move the article reports. up = rising; down = falling; flat = unchanged; new = something new (a product, a rule, a deal); n/a = no direction applies. null when the article was not summarized."},
+    "event_date": {"type": ["string", "null"], "format": "date", "description": "Date the event happened or takes effect, as the article states it; not the publication date. null when the article does not say."},
+    "analysis": {"type": ["string", "null"], "description": "Short assessment written by the model for the most important articles of the day. An opinion, not a fact. Markdown without headings. null for every other article."},
+
+    "sentiment_corporate": {"type": ["number", "null"], "minimum": -1, "maximum": 1, "description": "Model judgement, not data: direction of the effect of the event on the corporate and institutional banking business of the bank. From -1 (clear loss) through 0 (no direction) to 1 (clear gain). null when the article was not scored or the event does not touch this lens."},
+    "impact_corporate": {"type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "Model judgement, not data: size of the effect on the corporate and institutional banking business, in either direction. 1 = hardly touches it; 2 = indirect, slow or unclear; 3 = indirect through a clear channel; 4 = direct on a core sector or a major client group; 5 = direct and large. null exactly when sentiment_corporate is null."},
+    "sentiment_general": {"type": ["number", "null"], "minimum": -1, "maximum": 1, "description": "Model judgement, not data: direction of the effect of the event on the SME, household and overall business of the bank. From -1 (clear loss) through 0 (no direction) to 1 (clear gain). null when the article was not scored or the event does not touch this lens."},
+    "impact_general": {"type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "Model judgement, not data: size of the effect on the SME, household and overall business, in either direction. 1 = hardly touches it; 2 = small or slow effect; 3 = effect through consumption, jobs or one sector; 4 = strong effect on households or on pricing; 5 = system-wide change for every customer. null exactly when sentiment_general is null."},
+    "scoring_version": {"type": ["integer", "null"], "minimum": 1, "description": "Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored."}
+  },
+  "allOf": [
+    {"if": {"properties": {"enrichment": {"const": "raw"}}},
+     "then": {"properties": {"category": {"maxItems": 0}, "summary": {"maxItems": 0}, "analysis": {"const": null}, "llm_run_id": {"const": null}}}},
+    {"if": {"properties": {"llm_use": {"const": false}}},
+     "then": {"properties": {"summary_source": {"enum": ["sapo", null]}, "analysis": {"const": null}}}},
+    {"if": {"properties": {"content_status": {"const": "ok"}}},
+     "then": {"properties": {"content_md": {"type": "string", "minLength": 1}}},
+     "else": {"properties": {"content_md": {"const": null}}}},
+    {"if": {"properties": {"sentiment_corporate": {"const": null}}},
+     "then": {"properties": {"impact_corporate": {"const": null}}},
+     "else": {"properties": {"impact_corporate": {"type": "integer"}, "scoring_version": {"type": "integer"}}}},
+    {"if": {"properties": {"sentiment_general": {"const": null}}},
+     "then": {"properties": {"impact_general": {"const": null}}},
+     "else": {"properties": {"impact_general": {"type": "integer"}, "scoring_version": {"type": "integer"}}}}
+  ]
+}

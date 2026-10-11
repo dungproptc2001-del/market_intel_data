@@ -1,0 +1,133 @@
+{
+  "categories": [
+    {
+      "name": "macro",
+      "description": "Affects the whole economy and the bank's operating environment.",
+      "subcategories": [
+        {
+          "name": "interest_rate",
+          "description": "SBV policy rates (refinancing, rediscount, OMO), deposit/lending rates, Fed/ECB/SBV monetary policy"
+        },
+        {
+          "name": "oil_energy_price",
+          "description": "Brent/WTI, domestic fuel prices, OPEC+, fuel taxes and reserves"
+        },
+        {
+          "name": "exchange_rate",
+          "description": "USD/VND (central, interbank, free market), SBV FX intervention, DXY"
+        },
+        {
+          "name": "gold_commodities",
+          "description": "Global/domestic gold and the premium, steel, cement, farm commodities"
+        },
+        {
+          "name": "gdp_growth",
+          "description": "Vietnam/regional GDP, stimulus, growth targets, ADB/WB/IMF/OECD forecasts"
+        },
+        {
+          "name": "fdi_trade",
+          "description": "FDI into Vietnam, import/export, trade policy (US-China, EU rules)"
+        },
+        {
+          "name": "geopolitical",
+          "description": "Conflicts, sanctions, embargoes, supply-chain risk"
+        },
+        {
+          "name": "fiscal_policy",
+          "description": "Public investment, state budget, VAT/PIT/CIT/environmental tax, government bonds"
+        },
+        {
+          "name": "household_consumption",
+          "description": "Retail sales, household income, labour market, consumer confidence, household debt"
+        }
+      ]
+    },
+    {
+      "name": "micro",
+      "description": "One sector only — CIBG clients and credit portfolio.",
+      "subcategories": [
+        {
+          "name": "real_estate",
+          "description": "Developers, projects, property market and legal, RE bonds, developer debt restructuring"
+        },
+        {
+          "name": "infrastructure",
+          "description": "Expressways, rail, airports, ports, contractors, construction materials, urban planning"
+        },
+        {
+          "name": "banking_finance",
+          "description": "Other commercial banks (competitors), bank strategy and personnel, bank M&A, fintech, consumer finance"
+        },
+        {
+          "name": "financial_services",
+          "description": "CIBG clients — securities firms, insurers, funds, asset managers, leasing, non-bank finance"
+        },
+        {
+          "name": "entertainment_travel_hospitality",
+          "description": "Airlines, tourism, hotels, resorts, F&B, luxury retail"
+        },
+        {
+          "name": "healthcare",
+          "description": "Private hospitals, pharma, medtech, health insurance and policy"
+        },
+        {
+          "name": "capital_markets",
+          "description": "VN-Index and stocks, equity and corporate bond issuance, funds, M&A"
+        },
+        {
+          "name": "diversified",
+          "description": "FMCG/retail, energy/utilities, manufacturing, tech/telecom, agriculture — when no sector above fits"
+        }
+      ]
+    },
+    {
+      "name": "retail",
+      "description": "Individual customers and the retail banking business (RBG).",
+      "subcategories": [
+        {
+          "name": "deposits_casa",
+          "description": "CASA, deposit mobilisation, savings products and promotions (rate moves stay in interest_rate)"
+        },
+        {
+          "name": "retail_lending",
+          "description": "Mortgage, auto, unsecured and consumer loans, household credit demand"
+        },
+        {
+          "name": "cards_payments",
+          "description": "Card spending, QR/Napas, e-wallets, cashless and cross-border payments"
+        },
+        {
+          "name": "wealth_bancassurance",
+          "description": "Bancassurance, retail funds/bonds, AUM, affluent and private banking"
+        },
+        {
+          "name": "digital_banking",
+          "description": "Banking apps, eKYC/biometrics, digital channels, branch network, ecosystem partnerships"
+        },
+        {
+          "name": "consumer_protection",
+          "description": "Scams and fraud targeting bank customers, SBV retail rules (cards, biometrics, deposit insurance)"
+        }
+      ]
+    },
+    {
+      "name": "other",
+      "description": "Truly unrelated to finance or business; rarely worth collecting.",
+      "subcategories": [
+        {
+          "name": "general_news",
+          "description": "Social, weather, crime, foreign news with no effect on Vietnam's economy"
+        },
+        {
+          "name": "fraud_scam",
+          "description": "Financial fraud not aimed at bank customers (crypto platforms, illegal funds), financial-law violations"
+        }
+      ]
+    },
+    {
+      "name": "news_unrelated",
+      "description": "Out of scope for the bank; kept in the file, not summarized or scored.",
+      "subcategories": []
+    }
+  ]
+}
