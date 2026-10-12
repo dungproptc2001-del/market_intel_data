@@ -22,15 +22,16 @@ Asia/Ho_Chi_Minh). The files of D are pushed on the morning of D+1.
 - Only the most recent days are kept (about 30). Older files are deleted from the repo; keep your own copy of what
   you ingested.
 
-## History is rewritten every week
+## History is kept
 
-To keep the repo small, the branch `main` is squashed to a single commit and force-pushed, once a week at most and
-without notice. A plain `git pull` fails after that.
+A day file that leaves the window is deleted with an ordinary commit, so a plain `git pull` keeps working. The
+deleted files stay in the git history of this repo.
 
 - Never commit to a clone of this repo.
-- Sync by discarding the local state: `git fetch origin && git reset --hard origin/main`. In a Databricks Git
-  folder, update the folder in the mode that discards local changes, or delete the folder and create it again.
-- Do not keep a commit sha as a reference to a file: after a squash it no longer exists.
+- If the repo grows too large one day, the branch `main` will be squashed to a single commit and force-pushed, and
+  this section will say so first. A plain `git pull` fails after that: sync by discarding the local state,
+  `git fetch origin && git reset --hard origin/main`. In a Databricks Git folder, update the folder in the mode that
+  discards local changes, or delete the folder and create it again.
 
 ## File rules
 
