@@ -48,13 +48,13 @@ File `feed/news/mra-news-YYYY-MM-DD.jsonl`, one article per line. Key: `id`.
 | `fetch_via` | `STRING` | yes | How the full text was fetched. http = a plain HTTP request; firecrawl = a rendering service, used where plain HTTP cannot get the page. null when nothing was fetched. |
 | `content_md` | `STRING` | yes | Full text of the article as Markdown, exactly as the collector stored it. null unless content_status is ok. |
 | `prefilter` | `STRING` | no | Result of the keyword filter that runs before any model. candidate = passed the filter; unrelated = out of scope by the keyword rules, kept in the file with category news_unrelated and not processed further. |
-| `llm_use` | `BOOLEAN` | no | Whether the full text of this source may be given to the language model. When false the model saw only the title and the lead: summary is then the lead (summary_source sapo) and analysis is null. |
+| `llm_use` | `BOOLEAN` | no | Whether the full text of this source may be given to the language model. When false the model saw only the title and the lead: summary is then the lead (summary_source sapo), and an analysis, when there is one, is written from that lead alone. |
 | `cluster_id` | `STRING` | no | Copy cluster: the id of the earliest article among near-identical copies of one text (syndication). Equals id when the article has no copy. |
 | `dedup_suspect` | `ARRAY<STRING>` | no | Ids of other articles the collector suspected of reporting the same event. A hint only; the decision is in event_key. |
 | `enrichment` | `STRING` | no | How far the model layer processed this article. full = labelled and summarized; triage_only = labelled (category, topic, relevance) but not summarized; raw = not processed, every model field is empty. |
 | `llm_run_id` | `STRING` | yes | Id of the model run that produced the model fields, in the form llm-YYYY-MM-DD_HHMM. null when enrichment is raw. |
-| `event_key` | `STRING` | yes | Event id: ev- followed by 10 hex characters. Articles of one digest_date that report the same event (same actors, same action, same time) share one event_key. null when enrichment is raw. |
-| `representative` | `BOOLEAN` | yes | true for exactly one article of each event_key, the one that stands for the event; false for the other articles of that event. Only a representative is scored. null when enrichment is raw. |
+| `event_key` | `STRING` | yes | Event id: ev- followed by 10 hex characters. Articles that report the same event (same actors, same action, same time) share one event_key. They mostly share a digest_date too, but an article can take the event_key of an article of an earlier day that reports the same event. null when enrichment is raw. |
+| `representative` | `BOOLEAN` | yes | true for exactly one article of each event_key, the one that stands for the event; false for the other articles of that event, which may sit in a later digest_date than the representative. Only a representative is scored: join on event_key across days to give the scores of an event to all its articles. When the first article of the event was never enriched, no article has true for that event_key. null when enrichment is raw. |
 | `category` | `ARRAY<STRING>` | no | Categories from meta/taxonomy.json (macro, micro, retail, other), the primary one first; or news_unrelated alone for an article out of scope. Empty when enrichment is raw. |
 | `subcategory` | `ARRAY<STRING>` | no | Subcategories from meta/taxonomy.json, each under one of the categories of the article, the primary one first. Empty for news_unrelated and when enrichment is raw. |
 | `topic` | `STRING` | yes | The event in a few plain Vietnamese words, at most 120 characters. null when the title says nothing usable or enrichment is raw. |
@@ -169,7 +169,7 @@ For a graph. Nothing below adds data: every node and edge is read from the field
 | Node | Identity | Comes from |
 |---|---|---|
 | Article | `id` | one line of the news file; the current line is the one with the greatest (`digest_date`, `updated_at`) |
-| Event | (`digest_date`, `event_key`) | the articles that share an `event_key` |
+| Event | `event_key` | the articles that share an `event_key`, mostly of one `digest_date`; an event can take in articles of a later day |
 | Entity | (`name`, `type`) | elements of `entities` |
 | Category, Subcategory | the name | `category`, `subcategory`, described in the taxonomy |
 | Segment | `RBG`, `CIBG` | `segment` |
@@ -184,7 +184,7 @@ For a graph. Nothing below adds data: every node and edge is read from the field
 | Edge | Read from | Notes |
 |---|---|---|
 | Article REPORTS Event | `event_key` | Several articles can report one event. Exactly one of them has `representative` true. |
-| Event REPRESENTED_BY Article | `representative` | Take the summary, the labels and the scores of an event from this article. To count events, count the articles with `representative` true; counting every article counts an event several times. |
+| Event REPRESENTED_BY Article | `representative` | Take the summary, the labels and the scores of an event from this article, joining on `event_key` over all days: the representative can sit in an earlier `digest_date` than the other articles. To count events, count the articles with `representative` true; counting every article counts an event several times. |
 | Article COPY_OF Article | `cluster_id` | Near-identical text republished by another outlet. `cluster_id` is the `id` of the earliest copy. This is about text, while `event_key` is about what happened. |
 | Article SUSPECTED_SAME_AS Article | `dedup_suspect` | A hint from the collector, before any model. Not a decision; do not merge on it. |
 | Article MENTIONS Entity | `entities` | Names are as written in the article and are not normalized: one bank can appear under its full name and under its ticker. Normalize before merging nodes. |
