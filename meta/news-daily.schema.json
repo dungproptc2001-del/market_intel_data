@@ -49,7 +49,7 @@
     "segment": {"type": "array", "items": {"enum": ["RBG", "CIBG"]}, "description": "Business segments of the bank the article concerns. RBG = retail banking: individuals and the retail business; CIBG = corporate and institutional banking: corporate clients and the credit portfolio. Can hold both, or be empty."},
     "relevance": {"type": ["integer", "null"], "minimum": 0, "maximum": 3, "description": "How much the bank needs this article, judged by the model from the title and the lead. 3 = changes operating conditions or a key market now; 2 = clearly bears on the business or a client sector, worth reading in full; 1 = background; 0 = unrelated. null when enrichment is raw."},
     "summary": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "Facts the article states, one sentence per element, in Vietnamese. Nothing here is inferred. Empty when the article was not summarized."},
-    "summary_source": {"enum": ["llm", "sapo", null], "description": "Where summary comes from. llm = written by the model from the full text; sapo = the lead paragraph of the publisher, used when llm_use is false. null when summary is empty."},
+    "summary_source": {"enum": ["llm", "sapo", null], "description": "Where summary comes from. llm = written by the model from the full text; sapo = a lead written by the publisher, used when llm_use is false: the lead paragraph of the feed or, when the feed gave none, the meta description of the page, taken only when it is short enough to be a lead (600 characters) and never cut. null when summary is empty."},
     "entities": {
       "description": "Organizations, people, places and instruments the article names. Empty when the article was not summarized.",
       "type": "array",
