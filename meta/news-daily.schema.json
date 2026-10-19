@@ -12,7 +12,8 @@
     "enrichment", "llm_run_id", "event_key", "representative", "category", "subcategory", "topic", "segment",
     "relevance", "summary", "summary_source", "entities", "metrics", "figures", "direction", "event_date",
     "analysis",
-    "sentiment_corporate", "impact_corporate", "sentiment_general", "impact_general", "scoring_version"
+    "sentiment_corporate", "impact_corporate", "sentiment_general", "impact_general", "scoring_version",
+    "impact"
   ],
   "properties": {
     "schema_version": {"const": 2, "description": "Version of the file layout; 2 is the layout described here. It rises only when a field changes type or meaning or is dropped. A new field does not change it."},
@@ -89,7 +90,8 @@
     "impact_corporate": {"type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "Model judgement, not data: size of the effect on the corporate and institutional banking business, in either direction. 1 = hardly touches it; 2 = indirect, slow or unclear; 3 = indirect through a clear channel; 4 = direct on a core sector or a major client group; 5 = direct and large. null exactly when sentiment_corporate is null."},
     "sentiment_general": {"type": ["number", "null"], "minimum": -1, "maximum": 1, "description": "Model judgement, not data: direction of the effect of the event on the SME, household and overall business of the bank. From -1 (clear loss) through 0 (no direction) to 1 (clear gain). null when the article was not scored or the event does not touch this lens."},
     "impact_general": {"type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "Model judgement, not data: size of the effect on the SME, household and overall business, in either direction. 1 = hardly touches it; 2 = small or slow effect; 3 = effect through consumption, jobs or one sector; 4 = strong effect on households or on pricing; 5 = system-wide change for every customer. null exactly when sentiment_general is null."},
-    "scoring_version": {"type": ["integer", "null"], "minimum": 1, "description": "Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored."}
+    "scoring_version": {"type": ["integer", "null"], "minimum": 1, "description": "Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored."},
+    "impact": {"type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "Model judgement, not data: the larger of impact_corporate and impact_general, so that events can be filtered and ranked on one column. Computed from the two, never scored on its own. null exactly when both are null."}
   },
   "allOf": [
     {"if": {"properties": {"enrichment": {"const": "raw"}}},
@@ -104,6 +106,9 @@
      "else": {"properties": {"impact_corporate": {"type": "integer"}, "scoring_version": {"type": "integer"}}}},
     {"if": {"properties": {"sentiment_general": {"const": null}}},
      "then": {"properties": {"impact_general": {"const": null}}},
-     "else": {"properties": {"impact_general": {"type": "integer"}, "scoring_version": {"type": "integer"}}}}
+     "else": {"properties": {"impact_general": {"type": "integer"}, "scoring_version": {"type": "integer"}}}},
+    {"if": {"properties": {"impact_corporate": {"const": null}, "impact_general": {"const": null}}},
+     "then": {"properties": {"impact": {"const": null}}},
+     "else": {"properties": {"impact": {"type": "integer"}}}}
   ]
 }

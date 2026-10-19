@@ -81,6 +81,7 @@ File `feed/news/mra-news-YYYY-MM-DD.jsonl`, one article per line. Key: `id`.
 | `sentiment_general` | `DOUBLE` | yes | Model judgement, not data: direction of the effect of the event on the SME, household and overall business of the bank. From -1 (clear loss) through 0 (no direction) to 1 (clear gain). null when the article was not scored or the event does not touch this lens. |
 | `impact_general` | `INT` | yes | Model judgement, not data: size of the effect on the SME, household and overall business, in either direction. 1 = hardly touches it; 2 = small or slow effect; 3 = effect through consumption, jobs or one sector; 4 = strong effect on households or on pricing; 5 = system-wide change for every customer. null exactly when sentiment_general is null. |
 | `scoring_version` | `INT` | yes | Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored. |
+| `impact` | `INT` | yes | Model judgement, not data: the larger of impact_corporate and impact_general, so that events can be filtered and ranked on one column. Computed from the two, never scored on its own. null exactly when both are null. |
 <!-- /generated:news -->
 
 ## Rates fields
@@ -184,7 +185,7 @@ For a graph. Nothing below adds data: every node and edge is read from the field
 | Edge | Read from | Notes |
 |---|---|---|
 | Article REPORTS Event | `event_key` | Several articles can report one event. Exactly one of them has `representative` true. |
-| Event REPRESENTED_BY Article | `representative` | Take the summary, the labels and the scores of an event from this article, joining on `event_key` over all days: the representative can sit in an earlier `digest_date` than the other articles. To count events, count the articles with `representative` true; counting every article counts an event several times. |
+| Event REPRESENTED_BY Article | `representative` | Take the summary, the labels and the scores of an event from this article, joining on `event_key` over all days: the representative can sit in an earlier `digest_date` than the other articles. To count events, count the articles with `representative` true; counting every article counts an event several times. The README gives a view with one row per event (`news_events`). |
 | Article COPY_OF Article | `cluster_id` | Near-identical text republished by another outlet. `cluster_id` is the `id` of the earliest copy. This is about text, while `event_key` is about what happened. |
 | Article SUSPECTED_SAME_AS Article | `dedup_suspect` | A hint from the collector, before any model. Not a decision; do not merge on it. |
 | Article MENTIONS Entity | `entities` | Names are as written in the article and are not normalized: one bank can appear under its full name and under its ticker. Normalize before merging nodes. |

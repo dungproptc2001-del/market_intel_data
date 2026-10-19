@@ -109,7 +109,8 @@ sentiment_corporate DOUBLE COMMENT 'Model judgement, not data: direction of the 
 impact_corporate INT COMMENT 'Model judgement, not data: size of the effect on the corporate and institutional banking business, in either direction. 1 = hardly touches it; 2 = indirect, slow or unclear; 3 = indirect through a clear channel; 4 = direct on a core sector or a major client group; 5 = direct and large. null exactly when sentiment_corporate is null.',
 sentiment_general DOUBLE COMMENT 'Model judgement, not data: direction of the effect of the event on the SME, household and overall business of the bank. From -1 (clear loss) through 0 (no direction) to 1 (clear gain). null when the article was not scored or the event does not touch this lens.',
 impact_general INT COMMENT 'Model judgement, not data: size of the effect on the SME, household and overall business, in either direction. 1 = hardly touches it; 2 = small or slow effect; 3 = effect through consumption, jobs or one sector; 4 = strong effect on households or on pricing; 5 = system-wide change for every customer. null exactly when sentiment_general is null.',
-scoring_version INT COMMENT 'Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored.'
+scoring_version INT COMMENT 'Version of the scoring rules in force when the article was scored; compare scores across versions with care. A value with both lenses null means the article was scored and found to touch neither lens. null when the article was not scored.',
+impact INT COMMENT 'Model judgement, not data: the larger of impact_corporate and impact_general, so that events can be filtered and ranked on one column. Computed from the two, never scored on its own. null exactly when both are null.'
 ```
 
 - `enrichment` is `raw` for an article no model has read: the labels, `summary` and `analysis` are then empty.
@@ -162,6 +163,53 @@ news = spark.read.schema(NEWS_DDL).option("mode", "FAILFAST").json("<git folder>
 rates = spark.read.schema(RATES_DDL).option("mode", "FAILFAST").json("<git folder>/feed/rates/")
 # then MERGE with the keys above
 ```
+
+### One row per event: query this, not the article table
+
+The news file keeps every article, also the ones that only repeat an event another article already reports. Only
+the `representative` article of an event carries its summary, analysis and scores; the others have them `null`.
+Counting, ranking or averaging over the article table therefore counts an event once per outlet and mixes in empty
+rows. For everyday questions, query a view with one row per event:
+
+```sql
+CREATE OR REPLACE VIEW news_events AS
+WITH coverage AS (
+  SELECT event_key,
+         count(*)                                                 AS n_articles,
+         array_sort(collect_set(coalesce(source_domain, source_name))) AS sources,
+         min(published_at)                                        AS first_published_at
+  FROM news                      -- the MERGEd table: one line per id
+  WHERE event_key IS NOT NULL
+  GROUP BY event_key
+)
+SELECT n.*, c.n_articles, c.sources, c.first_published_at
+FROM news n
+JOIN coverage c USING (event_key)
+WHERE n.representative = true;
+```
+
+The top events of a day, in the order the daily mail uses:
+
+```sql
+SELECT digest_date, title, source_domain, impact,
+       impact_corporate, sentiment_corporate, impact_general, sentiment_general,
+       n_articles, sources, analysis
+FROM news_events
+WHERE digest_date = DATE'2026-10-18' AND relevance >= 2
+ORDER BY impact DESC NULLS LAST,
+         greatest(abs(sentiment_corporate), abs(sentiment_general)) DESC NULLS LAST,
+         relevance DESC, id;
+```
+
+- `relevance >= 2` keeps the events worth reading; below 2 they are labelled from the title only and have no scores.
+  A few events of relevance 2 or more have no scores either: the article gave no text to summarise, or neither lens
+  is touched. `NULLS LAST` puts them at the end.
+- `impact` is the larger of `impact_corporate` and `impact_general`, `null` when the event was not scored. Filter
+  and rank on it; the two lens fields say which side of the business the event touches.
+- An event sits on the `digest_date` of its representative. An article of a later day can join it, so `n_articles`
+  and `sources` count every day.
+- Not in the view: articles with no `event_key` (`enrichment` raw) and the rare event whose representative was never
+  enriched. Query the article table for those, and for anything about coverage (which outlets ran the story, when).
 
 ## Content
 
